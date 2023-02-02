@@ -3,9 +3,9 @@ import numpy as np
 import pywavefront
 from py3dtiles import GlTFMaterial
 
-from ..Common import Feature, FeatureList
+from ..Common import Feature, FeatureList, Scene
 from ..Texture import Texture
-from submeshes_separator import Scene
+
 
 
 # This Obj class refers to the obj file fromat (https://en.wikipedia.org/wiki/Wavefront_.obj_file)
@@ -30,7 +30,7 @@ class Obj(Feature):
     def set_material_index(self, index):
         self.material_index = index
 
-    def parse_geom(self, material, with_texture=False):
+    def parse_geom(self, submesh, with_texture=False):
         """
         Parse the geometry of a OBJ mesh to create a triangle soup with UVs.
         :param mesh: an OBJ mesh
@@ -52,9 +52,10 @@ class Obj(Feature):
         triangles = list()
         uvs = list()
 
-        vertices = material.vertices
+        vertices = submesh.vertices
         length = len(vertices)
-        vertex_format = material.vertex_format
+        vertex_format = 'V3F'
+
         # Contains only vertex positions
         if vertex_format == 'V3F':
             for i in range(0, length, 9):
@@ -92,8 +93,8 @@ class Obj(Feature):
         self.geom.triangles.append(triangles)
         if len(uvs) > 0 and with_texture:
             self.geom.triangles.append(uvs)
-            if material.texture is not None:
-                path = str(material.texture._path).replace('\\', '/')
+            if submesh.texture is not None:
+                path = str(submesh.texture._path).replace('\\', '/')
                 texture = Texture(path)
                 self.set_texture(texture.get_cropped_texture_image(self.geom.triangles[1]))
         self.set_box()
@@ -117,29 +118,45 @@ class Objs(FeatureList):
         :param with_texture: a boolean indicating if the textures should be read
         :return: a list of Obj.
         """
+
+        scene = Scene
         objects = list()
 
         for obj_file in files:
             print("Reading " + str(obj_file))
-            geom = pywavefront.Wavefront(obj_file, collect_faces=True, create_materials=True)
-            mesh = geom.mesh_list[0]
-            if len(geom.vertices) == 0:
-                continue
-            gltfMaterials = []
-            mesh_index = 1
+            scene = Scene(obj_file)
 
-            for mesh in mesh.materials:
-                # get id from its name
-                id = mesh.name
+            for submesh in scene.groups:
+                id = submesh.id
+                print(id)
                 obj = Obj(id)
-                obj.set_material_index(mesh_index)
-                mesh_index += 1
-                if obj.parse_geom(mesh, with_texture):                        
+                if obj.parse_geom(submesh, with_texture):                        
                     objects.append(obj)
-                material = GlTFMaterial(rgb=[mesh.diffuse[0], mesh.diffuse[1], mesh.diffuse[2]], alpha=1. - mesh.diffuse[3], metallicFactor=0.)
-                gltfMaterials.append(material)
+           
 
         fList = Objs(objects)
-        fList.add_materials(gltfMaterials)
+
+        #     print('*******************************************************************************************************************************')
+        #     geom = pywavefront.Wavefront(obj_file, collect_faces=True, create_materials=True)
+        #     mesh = geom.mesh_list[0]
+        #     if len(geom.vertices) == 0:
+        #         continue
+        #     gltfMaterials = []
+        #     mesh_index = 1
+
+
+        #     for mesh in mesh.materials:
+        #         # get id from its name
+        #         id = mesh.name
+        #         obj = Obj(id)
+        #         obj.set_material_index(mesh_index)
+        #         mesh_index += 1
+        #         if obj.parse_geom(mesh, with_texture):                        
+        #             objects.append(obj)
+        #         material = GlTFMaterial(rgb=[mesh.diffuse[0], mesh.diffuse[1], mesh.diffuse[2]], alpha=1. - mesh.diffuse[3], metallicFactor=0.)
+        #         gltfMaterials.append(material)
+
+        # fList = Objs(objects)
+        # fList.add_materials(gltfMaterials)
 
         return fList

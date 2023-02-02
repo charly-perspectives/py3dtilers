@@ -12,6 +12,7 @@ from .lod_tree import LodTree
 from .obj_writer import ObjWriter
 from .tileset_creation import FromGeometryTreeToTileset
 from .tiler import Tiler
+from .scene import Scene
 
 __all__ = ['kd_tree',
            'Feature',
@@ -28,4 +29,5 @@ __all__ = ['kd_tree',
            'LodTree',
            'ObjWriter',
            'Tiler',
+           'Scene',
            'FromGeometryTreeToTileset']
