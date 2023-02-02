@@ -5,6 +5,7 @@ from py3dtiles import GlTFMaterial
 
 from ..Common import Feature, FeatureList
 from ..Texture import Texture
+from submeshes_separator import Scene
 
 
 # This Obj class refers to the obj file fromat (https://en.wikipedia.org/wiki/Wavefront_.obj_file)
