@@ -2,6 +2,7 @@
 import numpy as np
 import pywavefront
 from py3dtiles import GlTFMaterial
+import json
 
 from ..Common import Feature, FeatureList, Scene
 from ..Texture import Texture
@@ -29,8 +30,10 @@ class Obj(Feature):
 
     def set_material_index(self, index):
         self.material_index = index
+    
+    
 
-    def parse_geom(self, submesh, with_texture=False):
+    def parse_geom(self, submesh, material_index, batch_table_data, with_texture=False):
         """
         Parse the geometry of a OBJ mesh to create a triangle soup with UVs.
         :param mesh: an OBJ mesh
@@ -52,8 +55,10 @@ class Obj(Feature):
         triangles = list()
         uvs = list()
 
-        vertices = submesh.vertices
+        # print('submesh', submesh.vertices)
+        vertices = submesh.vertices[material_index]
         length = len(vertices)
+        # print('vertices ', vertices)
         vertex_format = 'V3F'
 
         # Contains only vertex positions
@@ -91,13 +96,17 @@ class Obj(Feature):
             return False
 
         self.geom.triangles.append(triangles)
-        if len(uvs) > 0 and with_texture:
-            self.geom.triangles.append(uvs)
-            if submesh.texture is not None:
-                path = str(submesh.texture._path).replace('\\', '/')
-                texture = Texture(path)
-                self.set_texture(texture.get_cropped_texture_image(self.geom.triangles[1]))
-        self.set_box()
+        # if len(uvs) > 0 and with_texture:
+        #     self.geom.triangles.append(uvs)
+        #     if submesh.texture is not None:
+        #         path = str(submesh.texture._path).replace('\\', '/')
+        #         texture = Texture(path)
+        #         self.set_texture(texture.get_cropped_texture_image(self.geom.triangles[1]))
+        # self.set_box()
+        np.set_printoptions(precision=10)
+        for t in triangles:
+            print(t)
+        super().set_batchtable_data(batch_table_data)
 
         return True
 
@@ -118,45 +127,50 @@ class Objs(FeatureList):
         :param with_texture: a boolean indicating if the textures should be read
         :return: a list of Obj.
         """
-
         scene = Scene
         objects = list()
 
-        for obj_file in files:
-            print("Reading " + str(obj_file))
-            scene = Scene(obj_file)
+        #  retrieve json
+        obj_file = files[0]
+        decomp_path = obj_file.split('\\')
+        filename_length = len(decomp_path[-1])
+        json_path = obj_file[:-filename_length] + 'batchtables.json'
+        json_file = open(json_path, 'r')
+        batch_tables = json.load(json_file)
+        
+        print("Reading " + str(obj_file))
+        scene = Scene(obj_file)
+        gltfMaterials = []
+    
+        
+        # load materials
+        materials_repertory = dict()
+        material_index = 1
+        for material in scene.materials:
+            mat = GlTFMaterial(rgb=[material.r, material.g, material.b], alpha=material.a, metallicFactor=0.)
+            gltfMaterials.append(mat)
+            materials_repertory[material.name] = material_index
+            material_index += 1
+            #print(material.name)
+            
 
-            for submesh in scene.groups:
-                id = submesh.id
-                print(id)
+        for submesh in scene.groups:
+            id = submesh.id
+            materials = submesh.materials
+
+            print("Groupe : ", submesh.id)
+            for i in range(len(materials)):
+                print('material num :' , i)
                 obj = Obj(id)
-                if obj.parse_geom(submesh, with_texture):                        
+                batch_table_data = {}
+                if(id[:-1] in batch_tables):
+                    batch_table_data = batch_tables[id[:-1]]
+                else:
+                    print(id[:-1], 'has no batch table')
+                if obj.parse_geom(submesh, i, batch_table_data, with_texture):
+                    obj.set_material_index(materials_repertory[materials[i]])                        
                     objects.append(obj)
-           
-
+          
         fList = Objs(objects)
-
-        #     print('*******************************************************************************************************************************')
-        #     geom = pywavefront.Wavefront(obj_file, collect_faces=True, create_materials=True)
-        #     mesh = geom.mesh_list[0]
-        #     if len(geom.vertices) == 0:
-        #         continue
-        #     gltfMaterials = []
-        #     mesh_index = 1
-
-
-        #     for mesh in mesh.materials:
-        #         # get id from its name
-        #         id = mesh.name
-        #         obj = Obj(id)
-        #         obj.set_material_index(mesh_index)
-        #         mesh_index += 1
-        #         if obj.parse_geom(mesh, with_texture):                        
-        #             objects.append(obj)
-        #         material = GlTFMaterial(rgb=[mesh.diffuse[0], mesh.diffuse[1], mesh.diffuse[2]], alpha=1. - mesh.diffuse[3], metallicFactor=0.)
-        #         gltfMaterials.append(material)
-
-        # fList = Objs(objects)
-        # fList.add_materials(gltfMaterials)
-
+        fList.add_materials(gltfMaterials)
         return fList

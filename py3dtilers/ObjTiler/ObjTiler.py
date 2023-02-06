@@ -6,7 +6,7 @@ class ObjTiler(Tiler):
 
     def __init__(self):
         super().__init__()
-        self.supported_extensions = ['.obj', '.OBJ']
+        self.supported_extensions = ['.obj', '.OBJ', '.mtl']
 
     def get_output_dir(self):
         """
