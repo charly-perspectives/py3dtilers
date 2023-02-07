@@ -31,8 +31,6 @@ class Obj(Feature):
     def set_material_index(self, index):
         self.material_index = index
     
-    
-
     def parse_geom(self, submesh, material_index, batch_table_data, with_texture=False):
         """
         Parse the geometry of a OBJ mesh to create a triangle soup with UVs.
@@ -55,10 +53,8 @@ class Obj(Feature):
         triangles = list()
         uvs = list()
 
-        # print('submesh', submesh.vertices)
         vertices = submesh.vertices[material_index]
         length = len(vertices)
-        # print('vertices ', vertices)
         vertex_format = 'V3F'
 
         # Contains only vertex positions
@@ -96,16 +92,14 @@ class Obj(Feature):
             return False
 
         self.geom.triangles.append(triangles)
-        # if len(uvs) > 0 and with_texture:
-        #     self.geom.triangles.append(uvs)
-        #     if submesh.texture is not None:
-        #         path = str(submesh.texture._path).replace('\\', '/')
-        #         texture = Texture(path)
-        #         self.set_texture(texture.get_cropped_texture_image(self.geom.triangles[1]))
-        # self.set_box()
-        np.set_printoptions(precision=10)
-        for t in triangles:
-            print(t)
+        if len(uvs) > 0 and with_texture:
+            self.geom.triangles.append(uvs)
+            if submesh.texture is not None:
+                path = str(submesh.texture._path).replace('\\', '/')
+                texture = Texture(path)
+                self.set_texture(texture.get_cropped_texture_image(self.geom.triangles[1]))
+        
+        self.set_box()
         super().set_batchtable_data(batch_table_data)
 
         return True
@@ -141,8 +135,7 @@ class Objs(FeatureList):
         print("Reading " + str(obj_file))
         scene = Scene(obj_file)
         gltfMaterials = []
-    
-        
+           
         # load materials
         materials_repertory = dict()
         material_index = 1
@@ -151,16 +144,12 @@ class Objs(FeatureList):
             gltfMaterials.append(mat)
             materials_repertory[material.name] = material_index
             material_index += 1
-            #print(material.name)
             
-
         for submesh in scene.groups:
             id = submesh.id
             materials = submesh.materials
 
-            print("Groupe : ", submesh.id)
             for i in range(len(materials)):
-                print('material num :' , i)
                 obj = Obj(id)
                 batch_table_data = {}
                 if(id[:-1] in batch_tables):

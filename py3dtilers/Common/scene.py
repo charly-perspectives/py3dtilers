@@ -96,8 +96,6 @@ class Group:
                 verts += vertices[i2]
             self.vertices.append(verts)
             
-        print("group")
-        print(self.vertices)
 
         
 
@@ -115,7 +113,6 @@ class gInfo:
     
     def addVertex(self, sline):
         vertex = [np.double(sline[1]), np.double(sline[2]), np.double(sline[3])]
-        print(vertex)
         self.vertices.append(vertex)
     
     def addNormal(self, sline):
